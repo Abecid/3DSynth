@@ -3,20 +3,37 @@ import random
 from mathutils import Euler
 import math
 import mathutils
+
+# ------------------------------
+# 렌더링 엔진 설정
+# ------------------------------
+# # Cycles로 변경
+# bpy.context.scene.render.engine = 'CYCLES'
+
+# # GPU 사용 설정
+# prefs = bpy.context.preferences
+# prefs.addons['cycles'].preferences.compute_device_type = 'CUDA'  # 'CUDA', 'OPTIX' 또는 'OPENCL'
+# bpy.context.scene.cycles.device = 'GPU'
+
+# # 활성 GPU 장치 선택
+# for device in prefs.addons['cycles'].preferences.get_devices()[0]:
+#     device.use = True
+
 # ------------------------------
 # 설정
 # ------------------------------
+board_path = "/home/donghoon/Blender-python/glb_files/board.glb"
 glb_paths = [
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
-    "/home/donghoon/images/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
 ]
 move_range = (-5, 5)
 frame_start = 1
@@ -31,19 +48,32 @@ bpy.ops.object.delete()
 # ------------------------------
 # 보드 생성
 # ------------------------------
-bpy.ops.mesh.primitive_cube_add(size=12, location=(0, 0, -0.6))
+## custom board
+bpy.ops.import_scene.gltf(filepath=board_path)
 board = bpy.context.active_object
+board.location = (0, 0, -0.6)
 board.name = "Board"
-board.scale.z = 0.1
-
-board_material = bpy.data.materials.new(name="BoardMaterial")
-board_material.diffuse_color = (0.8, 0.8, 0.8, 1.0)
-board.data.materials.append(board_material)
+board.scale.z = 1.0
 
 bpy.context.view_layer.objects.active = board
 bpy.ops.rigidbody.object_add()
 board.rigid_body.type = 'PASSIVE'
 board.rigid_body.collision_shape = 'BOX'
+
+# ## default
+# bpy.ops.mesh.primitive_cube_add(size=12, location=(0, 0, -0.6), scale=(0.36/0.5, 1.0, 0.1))
+# board = bpy.context.active_object
+# board.name = "Board"
+# board.scale.z = 1.0
+
+# board_material = bpy.data.materials.new(name="BoardMaterial")
+# board_material.diffuse_color = (0.8, 0.8, 0.8, 1.0)
+# board.data.materials.append(board_material)
+
+# bpy.context.view_layer.objects.active = board
+# bpy.ops.rigidbody.object_add()
+# board.rigid_body.type = 'PASSIVE'
+# board.rigid_body.collision_shape = 'BOX'
 
 # ------------------------------
 # GLB 임포트 
