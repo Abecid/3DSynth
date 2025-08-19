@@ -49,7 +49,7 @@ move_range = (-5, 5)
 frame_start = 1
 frame_end = 300
 output_dir = "/home/donghoon/Blender-python/output"
-render_frames = [200]  # 특정 프레임만 렌더링
+render_frames = [50, 100, 200]  # 특정 프레임만 렌더링
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -87,7 +87,7 @@ for i, obj in enumerate(imported_objects):
     
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
-    
+    obj = bpy.context.active_object
     # JSON에서 크기 범위 불러오기
     with open(json_path, 'r') as f:
         size_data = json.load(f)
@@ -105,8 +105,9 @@ for i, obj in enumerate(imported_objects):
     scale_factor = target_length / max_dim
     
     # 스케일 적용 (기존 스케일 고려)
-    obj.scale = [s * scale_factor for s in obj.scale]
     
+    print(f"Object {i+1} scaled to {obj.scale}")
+    # bpy.ops.transform.resize(value=(obj.scale[0], obj.scale[1], obj.scale[2]))
     # 위치 랜덤 지정
     obj.location = (
         random.uniform(*move_range),
@@ -121,10 +122,12 @@ for i, obj in enumerate(imported_objects):
     
     rot_matrix = Euler((rx, ry, rz), 'XYZ').to_matrix().to_4x4()
     loc_matrix = Matrix.Translation(obj.location)
-    
+    scale_matrix = Matrix.Scale(scale_factor, 4)
+
     # 최종 월드 매트릭스 적용
-    obj.matrix_world = loc_matrix @ rot_matrix
-    
+    obj.matrix_world = loc_matrix @ rot_matrix @ scale_matrix
+    # 스케일 적용
+    # obj.scale = [s * scale_factor for s in obj.scale]
     # bproc 메타데이터 설정
     obj_bproc = bproc.python.types.MeshObjectUtility.MeshObject(obj)
     obj_bproc.set_cp("category_id", i + 2)
@@ -188,10 +191,10 @@ if hdri_files:
     env_node.image = bpy.data.images.load(hdri_path)
     world.node_tree.links.new(env_node.outputs['Color'], world.node_tree.nodes['World Output'].inputs['Surface'])
 
-# 조명 추가
-bpy.ops.object.light_add(type='SUN', location=(np.random.uniform(-20,20), np.random.uniform(-20,20), 20))
-sun_light = bpy.context.active_object
-sun_light.data.energy = np.random.uniform(1, 7)
+# # 조명 추가
+# bpy.ops.object.light_add(type='SUN', location=(np.random.uniform(-20,20), np.random.uniform(-20,20), 20))
+# sun_light = bpy.context.active_object
+# sun_light.data.energy = np.random.uniform(1, 7)
 
 
 # BlenderProc 렌더링 설정
