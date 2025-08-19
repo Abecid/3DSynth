@@ -6,6 +6,7 @@ import math
 import mathutils
 import numpy as np
 import os
+import json
 # from blenderproc.scripts import visHdf5Files
 bpy.context.scene.render.engine = 'CYCLES'
 prefs = bpy.context.preferences.addons['cycles'].preferences
@@ -43,6 +44,7 @@ glb_paths = [
     "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
     "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
 ]
+json_path = "/home/donghoon/Blender-python/glb_files/can/size.json"
 move_range = (-5, 5)
 frame_start = 1
 frame_end = 300
@@ -85,6 +87,17 @@ for i, obj in enumerate(imported_objects):
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
     
+    # 크기 조정
+    with open(json_path,'r') as f:
+        size_data = json.load(f)
+    min_size = size_data.get("min_size", 6.0)
+    max_size = size_data.get("max_size", 12.0)
+
+    MAX_size = random.uniform(min_size, max_size)
+    dims = obj.dimensions
+    max_dim = max(dims)
+    scale_factor = MAX_size / max_dim
+    obj.scale = [s * scale_factor for s in obj.scale]
     obj.location = (
         random.uniform(*move_range),
         random.uniform(*move_range),
@@ -167,7 +180,7 @@ sun_light.data.energy = np.random.uniform(1, 7)
 bproc.camera.set_resolution(512, 512)
 bproc.renderer.enable_normals_output()
 bproc.renderer.enable_depth_output(activate_antialiasing=False, convert_to_distance=True)
-bproc.renderer.enable_segmentation_output() # map_by=["category_id"]
+bproc.renderer.enable_segmentation_output(map_by=["category_id"])
 
 # 물리 시뮬레이션 전체 실행
 scene.frame_set(frame_start)
@@ -252,7 +265,8 @@ for frame in render_frames:
                     if len(coords[0]) > 0:
                         y_min, y_max = np.min(coords[0]), np.max(coords[0])
                         x_min, x_max = np.min(coords[1]), np.max(coords[1])
-                        bbox = [int(x_min), int(y_min), int(x_max - x_min), int(y_max - y_min)]
+                        # COCO 형식: [x, y, width, height] (좌상단 기준)
+                        bbox = [int(x_min), int(y_min), int(x_max - x_min + 1), int(y_max - y_min + 1)]
                         
                         # RLE 인코딩
                         rle_encoded = encode_rle(mask)
