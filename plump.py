@@ -7,6 +7,14 @@ import mathutils
 import numpy as np
 import os
 
+def encode_rle(mask):
+    """이진 마스크를 RLE로 인코딩"""
+    pixels = mask.flatten()
+    pixels = np.concatenate([[0], pixels, [0]])
+    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
+    runs[1::2] -= runs[::2]
+    return runs.tolist()
+
 # BlenderProc 초기화
 bproc.init()
 
@@ -28,7 +36,7 @@ move_range = (-5, 5)
 frame_start = 1
 frame_end = 300
 output_dir = "/home/donghoon/Blender-python/output"
-render_frames = [200,250,300]  # 특정 프레임만 렌더링
+render_frames = [200,250]  # 특정 프레임만 렌더링
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -104,8 +112,7 @@ scene.rigidbody_world.effector_weights.gravity = 1.0
 # 카메라 추가
 cameras = []
 target  = mathutils.Vector((0, 0, 0))
-x_range = (10, 15)
-y_range = (10, 15)
+
 z_range = 10
 
 def random_value(min_val, max_val):
@@ -115,7 +122,9 @@ def random_value(min_val, max_val):
         return random.uniform(-max_val, -min_val)
 
 for i in range(14):
-    x_value, y_value, z_value = random_value(*x_range), random_value(*y_range), z_range
+    radius = random.uniform(15.0, 20.0)
+    x_value = np.random.uniform(-radius, radius)
+    y_value, z_value = math.sqrt(radius ** 2 - x_value ** 2), z_range
     bpy.ops.object.camera_add(location=(x_value, y_value, z_value))
     camera = bpy.context.active_object
     direction = target - camera.location
@@ -149,6 +158,18 @@ bpy.ops.ptcache.bake_all(bake=True)
 # BlenderProc 카메라 포즈 초기화 (기존 포즈 제거)
 bproc.camera.set_resolution(512, 512)
 
+# COCO annotation 통합을 위한 변수들
+all_images = []
+all_annotations = []
+all_categories = []
+annotation_id = 1
+image_id = 1
+
+# images 폴더 생성
+images_dir = os.path.join(output_dir, "images")
+os.makedirs(images_dir, exist_ok=True)
+os.makedirs(os.path.join(output_dir, "hdf5"), exist_ok=True)
+
 # 시뮬레이션 완료 후 특정 프레임만 렌더링
 for frame in render_frames:
     for i, cam in enumerate(cameras):
@@ -156,27 +177,104 @@ for frame in render_frames:
         cam_matrix = cam.matrix_world
         bproc.camera.add_camera_pose(cam_matrix)
         
+        # 현재 프레임으로 설정
         bpy.context.scene.frame_set(frame)
         bpy.context.view_layer.update()
         
+        # z값이 0보다 아래인 객체들을 숨기기
+        hidden_objects = []
+        for obj in imported_objects:
+            if obj.location.z < 0:
+                obj.hide_render = True
+                hidden_objects.append(obj)
+            else:
+                obj.hide_render = False
         # 한 번에 모든 데이터 렌더링
         bpy.context.scene.frame_start = frame
         bpy.context.scene.frame_end = frame + 1
         data = bproc.renderer.render()
         
-        frame_output_dir = os.path.join(output_dir, f"hdf5")
-        os.makedirs(frame_output_dir, exist_ok=True)
+        # HDF5 저장 (별도 폴더)
+        hdf5_dir = os.path.join(output_dir, "hdf5")
+        os.makedirs(hdf5_dir, exist_ok=True)
+        bproc.writer.write_hdf5(os.path.join(hdf5_dir, f'{frame:04d}_{cam.name}.hdf5'), data)
         
-        bproc.writer.write_hdf5(output_dir + f'/hdf5/{frame:04d}_{cam.name}.hdf5', data)
+        # 각 이미지를 PNG로 저장
+        for idx, color_image in enumerate(data["colors"]):
+            image_filename = f"{frame:04d}_{cam.name}_{idx:02d}.png"
+            image_path = os.path.join(images_dir, image_filename)
+            
+            # PNG로 저장
+            import cv2
+            color_bgr = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(image_path, color_bgr)
+            
+            # COCO 이미지 정보 추가
+            all_images.append({
+                "id": image_id,
+                "width": color_image.shape[1],
+                "height": color_image.shape[0], 
+                "file_name": image_filename
+            })
+            
+            # 세그멘테이션 데이터가 있으면 annotation 생성
+            seg_map = data["category_id_segmaps"][idx]
+            unique_ids = np.unique(seg_map)
+            
+            for obj_id in unique_ids:
+                if obj_id > 0:  # 배경 제외
+                    mask = (seg_map == obj_id).astype(np.uint8)
+                    coords = np.where(mask)
+                    if len(coords[0]) > 0:
+                        y_min, y_max = np.min(coords[0]), np.max(coords[0])
+                        x_min, x_max = np.min(coords[1]), np.max(coords[1])
+                        bbox = [int(x_min), int(y_min), int(x_max - x_min), int(y_max - y_min)]
+                        
+                        # RLE 인코딩
+                        rle_encoded = encode_rle(mask)
+                        
+                        all_annotations.append({
+                            "id": annotation_id,
+                            "image_id": image_id,
+                            "category_id": int(obj_id),
+                            "bbox": bbox,
+                            "area": int(bbox[2] * bbox[3]),
+                            "segmentation": {
+                                "counts": rle_encoded,
+                                "size": [color_image.shape[0], color_image.shape[1]]
+                            },
+                            "iscrowd": 0
+                        })
+                        annotation_id += 1
+            
+            image_id += 1
         
-        # # COCO 형식의 annotation JSON 저장
-        bproc.writer.write_coco_annotations(
-            os.path.join(frame_output_dir, "coco_annotations.json"),
-            instance_segmaps=data.get("category_id_segmaps", []),
-            instance_attribute_maps=data.get("instance_attribute_maps", []),
-            colors=data["colors"],
-            color_file_format="JPEG"
-        )
+        # 숨겨진 객체들 다시 보이게 하기
+        for obj in hidden_objects:
+            obj.hide_render = False
         
         # 다음 카메라를 위해 현재 포즈 제거
         bproc.camera.set_resolution(512, 512)  # 포즈 리셋
+
+# 카테고리 정보 생성 (객체별)
+for i, obj in enumerate(imported_objects):
+    all_categories.append({
+        "id": i + 2,  # category_id와 일치
+        "name": obj.name,
+        "supercategory": "object"
+    })
+
+# 통합된 COCO annotation JSON 저장
+coco_data = {
+    "images": all_images,
+    "annotations": all_annotations, 
+    "categories": all_categories,
+    "info": {
+        "description": "BlenderProc Generated Dataset",
+        "version": "1.0"
+    }
+}
+
+with open(os.path.join(output_dir, "coco_annotations.json"), "w") as f:
+    import json
+    json.dump(coco_data, f, indent=2)
