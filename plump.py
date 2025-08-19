@@ -26,9 +26,9 @@ glb_paths = [
 ]
 move_range = (-5, 5)
 frame_start = 1
-frame_end = 200
+frame_end = 300
 output_dir = "/home/donghoon/Blender-python/output"
-render_frames = [1, 50, 100, 150, 200]  # 특정 프레임만 렌더링
+render_frames = [200,250,300]  # 특정 프레임만 렌더링
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -44,7 +44,7 @@ board.name = "Board"
 board.scale.z = 1.0
 
 board_bproc = bproc.python.types.MeshObjectUtility.MeshObject(board)
-board_bproc.set_cp("category_id", 0)
+board_bproc.set_cp("category_id", 1)
 
 bpy.context.view_layer.objects.active = board
 bpy.ops.rigidbody.object_add()
@@ -81,7 +81,7 @@ for i, obj in enumerate(imported_objects):
     obj.matrix_world = loc_matrix @ rot_matrix   
     
     obj_bproc = bproc.python.types.MeshObjectUtility.MeshObject(obj)
-    obj_bproc.set_cp("category_id", i + 1)
+    obj_bproc.set_cp("category_id", i + 2)
     
     bpy.ops.rigidbody.object_add()
     obj.rigid_body.type = 'ACTIVE'
@@ -99,6 +99,8 @@ scene.frame_end = frame_end
 scene.frame_current = frame_start
 scene.rigidbody_world.effector_weights.gravity = 1.0
 
+
+
 # 카메라 추가
 bpy.ops.object.camera_add(location=(15, -15, 10))
 camera = bpy.context.active_object
@@ -110,14 +112,24 @@ bpy.ops.object.light_add(type='SUN', location=(5, 5, 10))
 sun_light = bpy.context.active_object
 sun_light.data.energy = 3
 
+for obj in bpy.context.scene.objects:
+    for key in obj.keys():
+        if key != "_RNA_UI":
+            print(f"{key}: {obj[key]}")
+
+
 # BlenderProc 렌더링 설정
 bproc.camera.set_resolution(512, 512)
 bproc.renderer.enable_normals_output()
-bproc.renderer.enable_depth_output(activate_antialiasing=True)
-bproc.renderer.enable_segmentation_output(map_by=["category_id"])
+bproc.renderer.enable_depth_output(activate_antialiasing=False)
+bproc.renderer.enable_segmentation_output() # map_by=["category_id"]
 
 # 물리 시뮬레이션 전체 실행
 scene.frame_set(frame_start)
+# scene.frame_start = 200
+# scene.frame_end = frame_end
+# scene.rigidbody_world.point_cache.frame_start = 200
+# scene.rigidbody_world.point_cache.frame_end = 250
 bpy.ops.ptcache.bake_all(bake=True)
 
 # 시뮬레이션 완료 후 특정 프레임만 렌더링
@@ -126,11 +138,21 @@ for frame in render_frames:
     bpy.context.view_layer.update()
     
     # 한 번에 모든 데이터 렌더링
+    bpy.context.scene.frame_start = frame
+    bpy.context.scene.frame_end = frame + 1
     data = bproc.renderer.render()
-    
-    # 프레임별 출력 디렉토리
+    print(data.keys())
+    print(data)
     frame_output_dir = os.path.join(output_dir, f"frame_{frame:04d}")
     os.makedirs(frame_output_dir, exist_ok=True)
     
-    # 모든 데이터 저장
-    bproc.writer.write_hdf5(frame_output_dir, data)
+    bproc.writer.write_hdf5(f'./output/hdf5', data)
+    
+    # # COCO 형식의 annotation JSON 저장
+    bproc.writer.write_coco_annotations(
+        os.path.join(frame_output_dir, "coco_annotations.json"),
+        instance_segmaps=data.get("category_id_segmaps", []),
+        instance_attribute_maps=data.get("instance_attribute_maps", []),
+        colors=data["colors"],
+        color_file_format="JPEG"
+    )
