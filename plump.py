@@ -1,7 +1,7 @@
 import blenderproc as bproc
 import bpy
 import random
-from mathutils import Euler
+from mathutils import Euler, Matrix
 import math
 import mathutils
 import numpy as np
@@ -81,40 +81,55 @@ imported_objects = [obj for obj in bpy.context.scene.objects if obj.type == 'MES
 
 # 랜덤 위치/회전 + Rigidbody 적용
 for i, obj in enumerate(imported_objects):
+    # 부모 해제 및 초기화
     obj.parent = None
     obj.matrix_parent_inverse.identity()
     
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
     
-    # 크기 조정
-    with open(json_path,'r') as f:
+    # JSON에서 크기 범위 불러오기
+    with open(json_path, 'r') as f:
         size_data = json.load(f)
     min_size = size_data.get("min_size", 6.0)
     max_size = size_data.get("max_size", 12.0)
-
-    MAX_size = random.uniform(min_size, max_size)
+    
+    # 현재 최대 축 길이 계산
     dims = obj.dimensions
     max_dim = max(dims)
-    scale_factor = MAX_size / max_dim
+    
+    # 목표 길이 지정 (랜덤)
+    target_length = random.uniform(min_size, max_size)
+    
+    # 스케일 비율 계산
+    scale_factor = target_length / max_dim
+    
+    # 스케일 적용 (기존 스케일 고려)
     obj.scale = [s * scale_factor for s in obj.scale]
+    
+    # 위치 랜덤 지정
     obj.location = (
         random.uniform(*move_range),
         random.uniform(*move_range),
         10
     )
     
+    # 회전 랜덤 지정
     rx = random.uniform(0, 2*math.pi)
     ry = random.uniform(0, 2*math.pi)
     rz = random.uniform(0, 2*math.pi)
-
-    rot_matrix = Euler((rx, ry, rz), 'XYZ').to_matrix().to_4x4()
-    loc_matrix = mathutils.Matrix.Translation(obj.location)
-    obj.matrix_world = loc_matrix @ rot_matrix   
     
+    rot_matrix = Euler((rx, ry, rz), 'XYZ').to_matrix().to_4x4()
+    loc_matrix = Matrix.Translation(obj.location)
+    
+    # 최종 월드 매트릭스 적용
+    obj.matrix_world = loc_matrix @ rot_matrix
+    
+    # bproc 메타데이터 설정
     obj_bproc = bproc.python.types.MeshObjectUtility.MeshObject(obj)
     obj_bproc.set_cp("category_id", i + 2)
     
+    # 리지드바디 적용
     bpy.ops.rigidbody.object_add()
     obj.rigid_body.type = 'ACTIVE'
     obj.rigid_body.collision_shape = 'CONVEX_HULL'
@@ -122,6 +137,9 @@ for i, obj in enumerate(imported_objects):
     obj.rigid_body.friction = 1.0
     obj.rigid_body.linear_damping = 0.9
     obj.rigid_body.angular_damping = 0.9
+    
+    # 업데이트
+    bpy.context.view_layer.update()
 
 # 물리 시뮬레이션 환경 설정
 scene = bpy.context.scene
@@ -236,81 +254,14 @@ for frame in render_frames:
         os.makedirs(hdf5_dir, exist_ok=True)
         bproc.writer.write_hdf5(os.path.join(hdf5_dir, f'{frame:04d}_{cam.name}.hdf5'), data)
         
-        # 각 이미지를 PNG로 저장
-        for idx, color_image in enumerate(data["colors"]):
-            image_filename = f"{frame:04d}_{cam.name}_{idx:02d}.png"
-            image_path = os.path.join(images_dir, image_filename)
-            
-            # PNG로 저장
-            import cv2
-            color_bgr = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(image_path, color_bgr)
-            
-            # COCO 이미지 정보 추가
-            all_images.append({
-                "id": image_id,
-                "width": color_image.shape[1],
-                "height": color_image.shape[0], 
-                "file_name": 'images/' + image_filename
-            })
-            
-            # 세그멘테이션 데이터가 있으면 annotation 생성
-            seg_map = data["category_id_segmaps"][idx]
-            unique_ids = np.unique(seg_map)
-            
-            for obj_id in unique_ids:
-                if obj_id > 0:  # 배경 제외
-                    mask = (seg_map == obj_id).astype(np.uint8)
-                    coords = np.where(mask)
-                    if len(coords[0]) > 0:
-                        y_min, y_max = np.min(coords[0]), np.max(coords[0])
-                        x_min, x_max = np.min(coords[1]), np.max(coords[1])
-                        # COCO 형식: [x, y, width, height] (좌상단 기준)
-                        bbox = [int(x_min), int(y_min), int(x_max - x_min + 1), int(y_max - y_min + 1)]
-                        
-                        # RLE 인코딩
-                        rle_encoded = encode_rle(mask)
-                        
-                        all_annotations.append({
-                            "id": annotation_id,
-                            "image_id": image_id,
-                            "category_id": int(obj_id),
-                            "bbox": bbox,
-                            "area": int(bbox[2] * bbox[3]),
-                            "segmentation": {
-                                "counts": rle_encoded,
-                                "size": [color_image.shape[0], color_image.shape[1]]
-                            },
-                            "iscrowd": 0
-                        })
-                        annotation_id += 1
-            
-            image_id += 1
-        
+        bproc.writer.write_coco_annotations(os.path.join(output_dir, 'coco_data'),
+                                    instance_segmaps=data["category_id_segmaps"],
+                                    instance_attribute_maps=data["instance_attribute_maps"],
+                                    colors=data["colors"],
+                                    color_file_format="JPEG")
         # 숨겨진 객체들 다시 보이게 하기
         for obj in hidden_objects:
             obj.hide_render = False
         
         # 다음 카메라를 위해 현재 포즈 제거
         bproc.camera.set_resolution(512, 512)  # 포즈 리셋
-
-# 카테고리 정보 생성 (객체별)
-all_objects = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
-for i, obj in enumerate(all_objects):
-    category_id = 1 if obj == board else i + 1
-    all_categories.append({"id": category_id, "name": obj.name, "supercategory": "object"})
-
-# 통합된 COCO annotation JSON 저장
-coco_data = {
-    "images": all_images,
-    "annotations": all_annotations, 
-    "categories": all_categories,
-    "info": {
-        "description": "BlenderProc Generated Dataset",
-        "version": "1.0"
-    }
-}
-
-with open(os.path.join(output_dir, "coco_annotations.json"), "w") as f:
-    import json
-    json.dump(coco_data, f, indent=2)
