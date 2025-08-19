@@ -6,6 +6,17 @@ import math
 import mathutils
 import numpy as np
 import os
+# from blenderproc.scripts import visHdf5Files
+bpy.context.scene.render.engine = 'CYCLES'
+prefs = bpy.context.preferences.addons['cycles'].preferences
+prefs.compute_device_type = 'CUDA'
+prefs.get_devices()
+devices = prefs.devices
+if devices:
+    for device in devices:
+        if device.type in {'CUDA', 'OPTIX', 'OPENCL'}:
+            device.use = True
+    bpy.context.scene.cycles.device = 'GPU'
 
 def encode_rle(mask):
     """이진 마스크를 RLE로 인코딩"""
@@ -36,7 +47,7 @@ move_range = (-5, 5)
 frame_start = 1
 frame_end = 300
 output_dir = "/home/donghoon/Blender-python/output"
-render_frames = [200,250]  # 특정 프레임만 렌더링
+render_frames = [200]  # 특정 프레임만 렌더링
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -135,6 +146,17 @@ for i in range(14):
 
 bpy.context.scene.camera = camera
 
+# HDRI 배경 랜덤 적용
+hdri_dir = "/home/donghoon/Blender-python/background"
+hdri_files = [f for f in os.listdir(hdri_dir) if f.lower().endswith(('.hdr', '.exr'))]
+if hdri_files:
+    hdri_path = os.path.join(hdri_dir, random.choice(hdri_files))
+    world = bpy.context.scene.world
+    world.use_nodes = True
+    env_node = world.node_tree.nodes.new('ShaderNodeTexEnvironment')
+    env_node.image = bpy.data.images.load(hdri_path)
+    world.node_tree.links.new(env_node.outputs['Color'], world.node_tree.nodes['World Output'].inputs['Surface'])
+
 # 조명 추가
 bpy.ops.object.light_add(type='SUN', location=(np.random.uniform(-20,20), np.random.uniform(-20,20), 20))
 sun_light = bpy.context.active_object
@@ -144,7 +166,7 @@ sun_light.data.energy = np.random.uniform(1, 7)
 # BlenderProc 렌더링 설정
 bproc.camera.set_resolution(512, 512)
 bproc.renderer.enable_normals_output()
-bproc.renderer.enable_depth_output(activate_antialiasing=False)
+bproc.renderer.enable_depth_output(activate_antialiasing=False, convert_to_distance=True)
 bproc.renderer.enable_segmentation_output() # map_by=["category_id"]
 
 # 물리 시뮬레이션 전체 실행
@@ -186,9 +208,11 @@ for frame in render_frames:
         for obj in imported_objects:
             if obj.location.z < 0:
                 obj.hide_render = True
+                obj.hide_viewport = True
                 hidden_objects.append(obj)
             else:
                 obj.hide_render = False
+                obj.hide_viewport = False
         # 한 번에 모든 데이터 렌더링
         bpy.context.scene.frame_start = frame
         bpy.context.scene.frame_end = frame + 1
@@ -214,7 +238,7 @@ for frame in render_frames:
                 "id": image_id,
                 "width": color_image.shape[1],
                 "height": color_image.shape[0], 
-                "file_name": image_filename
+                "file_name": 'images/' + image_filename
             })
             
             # 세그멘테이션 데이터가 있으면 annotation 생성
@@ -257,12 +281,10 @@ for frame in render_frames:
         bproc.camera.set_resolution(512, 512)  # 포즈 리셋
 
 # 카테고리 정보 생성 (객체별)
-for i, obj in enumerate(imported_objects):
-    all_categories.append({
-        "id": i + 2,  # category_id와 일치
-        "name": obj.name,
-        "supercategory": "object"
-    })
+all_objects = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
+for i, obj in enumerate(all_objects):
+    category_id = 1 if obj == board else i + 1
+    all_categories.append({"id": category_id, "name": obj.name, "supercategory": "object"})
 
 # 통합된 COCO annotation JSON 저장
 coco_data = {

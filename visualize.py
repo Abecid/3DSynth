@@ -9,7 +9,7 @@ import matplotlib.colors as mcolors
 output_dir = "/home/donghoon/Blender-python/output"
 annotation_file = os.path.join(output_dir, "annotations.json")
 rgb_file = os.path.join(output_dir, "rgb0200.jpg")
-seg_file = os.path.join(output_dir, "segmentation_mask0200.png")
+# seg_file = os.path.join(output_dir, "segmentation_mask0200.png")
 
 # RGB 이미지 로드
 rgb_image = cv2.imread(rgb_file)
@@ -18,8 +18,8 @@ height, width = rgb_image.shape[:2]
 
 # 세그멘테이션 이미지 로드 (PNG 파일)
 seg_image = None
-if os.path.exists(seg_file):
-    seg_image = cv2.imread(seg_file, cv2.IMREAD_GRAYSCALE)
+# if os.path.exists(seg_file):
+#     seg_image = cv2.imread(seg_file, cv2.IMREAD_GRAYSCALE)
 
 # COCO 형식 어노테이션 파일 파싱
 annotations_data = []
