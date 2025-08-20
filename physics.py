@@ -9,9 +9,8 @@ def setup_physics():
     scene.frame_end = FRAME_END
     scene.frame_current = FRAME_START
     scene.rigidbody_world.effector_weights.gravity = 1.0
-
-def run_physics_simulation():
+    return scene
+def run_physics_simulation(scene):
     """물리 시뮬레이션 실행"""
-    scene = bpy.context.scene
     scene.frame_set(FRAME_START)
     bpy.ops.ptcache.bake_all(bake=True) 

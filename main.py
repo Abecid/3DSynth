@@ -6,16 +6,19 @@ import argparse
 from scene_setup import setup_gpu, clear_scene, create_board, create_walls, import_and_setup_objects, setup_hdri
 from physics import setup_physics, run_physics_simulation
 from rendering import create_cameras, setup_blenderproc_rendering, render_all_cameras
-from config import OUTPUT_DIR
+from config import OUTPUT_DIR, GLB_PATHS
 
 def main():
     global OUTPUT_DIR, RENDER_FRAMES, NUM_CAMERAS, RENDER_RESOLUTION
 
+    
     parser = argparse.ArgumentParser(description='BlenderProc Physics Simulation and Rendering')
     parser.add_argument('--output', '-o', default=OUTPUT_DIR, 
                        help='Output directory path')
     parser.add_argument('--frames', '-f', nargs='+', type=int, default=[50, 100, 200],
                        help='Frames to render (e.g., --frames 50 100 200)')
+    parser.add_argument('--glb', '-g', nargs='+', type=int, default=GLB_PATHS,
+                       help='Frames to render (e.g., --frames /home/donghoon/Blender-python/glb_files/textured_mesh.glb /home/donghoon/Blender-python/glb_files/textured_mesh.glb /home/donghoon/Blender-python/glb_files/textured_mesh.glb)')
     parser.add_argument('--cameras', '-c', type=int, default=14,
                        help='Number of cameras to create')
     parser.add_argument('--resolution', '-r', type=int, default=512,
@@ -58,14 +61,14 @@ def main():
     board = create_board()
     walls = create_walls()
     imported_objects = import_and_setup_objects(board, walls)
-    setup_hdri()
     
     # 물리 시뮬레이션
     print("Running physics simulation...")
-    setup_physics()
-    run_physics_simulation()
+    scene = setup_physics()
+    setup_hdri()
+    run_physics_simulation(scene)
     
-    # 카메라 생성 및 렌더링
+    # 카메라 생성 및 렌더링 (물리 시뮬레이션 후)
     print("Creating cameras and rendering...")
     cameras = create_cameras()
     setup_blenderproc_rendering()

@@ -66,13 +66,13 @@ def import_and_setup_objects(board, walls):
         bpy.ops.import_scene.gltf(filepath=glb_file)
         for obj in bpy.context.selected_objects:
             obj.name = os.path.dirname(glb_file).split('/')[-1]
+            json_file = os.path.join(os.path.dirname(glb_file), 'size.json')
+            with open(json_file, 'r') as f:
+                size_data = json.load(f)
+                obj['min_size'] = size_data.get("min_size", 6.0)
+                obj['max_size'] = size_data.get("max_size", 12.0)
     imported_objects = [obj for obj in bpy.context.scene.objects 
                        if obj.type == 'MESH' and obj != board and obj not in walls]
-    
-    with open(JSON_PATH, 'r') as f:
-        size_data = json.load(f)
-    min_size = size_data.get("min_size", 6.0)
-    max_size = size_data.get("max_size", 12.0)
     
     for i, obj in enumerate(imported_objects):
         obj.parent = None
@@ -84,7 +84,7 @@ def import_and_setup_objects(board, walls):
         
         dims = obj.dimensions
         max_dim = max(dims)
-        target_length = random.uniform(min_size, max_size)
+        target_length = random.uniform(obj['min_size'], obj['max_size'])
         scale_factor = target_length / max_dim
         
         obj.location = (
@@ -104,8 +104,8 @@ def import_and_setup_objects(board, walls):
         obj.matrix_world = loc_matrix @ rot_matrix @ scale_matrix
         
         obj_bproc = bproc.python.types.MeshObjectUtility.MeshObject(obj)
-        category_id = MAPPING_ID(obj.name)
-        obj_bproc.set_cp("category_id", MAPPING_ID)
+        category_id = MAPPING_ID[obj.name.split('.')[0]]
+        obj_bproc.set_cp("category_id", category_id)
         
         bpy.ops.rigidbody.object_add()
         obj.rigid_body.type = 'ACTIVE'

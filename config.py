@@ -5,9 +5,8 @@ MAPPING_ID = {'can': 1, 'bottle': 2, 'box': 3, 'cup': 4, 'plate': 5}
 # 파일 경로
 BOARD_PATH = "/home/donghoon/Blender-python/glb_files/board.glb"
 GLB_PATHS = [
-    "/home/donghoon/Blender-python/glb_files/textured_mesh.glb",
+    "/home/donghoon/Blender-python/glb_files/can/can1.glb",
 ] * 10
-JSON_PATH = "/home/donghoon/Blender-python/glb_files/can/size.json"
 OUTPUT_DIR = "/home/donghoon/Blender-python/output"
 HDRI_DIR = "/home/donghoon/Blender-python/background"
 
@@ -18,7 +17,7 @@ FRAME_END = 200
 RENDER_FRAMES = [200]
 
 # 카메라 설정
-NUM_CAMERAS = 14
+NUM_CAMERAS = 5
 CAMERA_RADIUS_RANGE = (15.0, 20.0)
 CAMERA_Z = 10
 RENDER_RESOLUTION = 512

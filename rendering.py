@@ -25,6 +25,23 @@ def create_cameras():
         camera.name = f"Camera_{i+1}"
         cameras.append(camera)
     
+    
+    bpy.ops.object.camera_add(location=(5, 0, 12))
+    camera = bpy.context.active_object
+    direction = target - camera.location
+    rot_quat = direction.to_track_quat('-Z', 'Y')
+    camera.rotation_euler = rot_quat.to_euler()
+    camera.name = f"Camera_{NUM_CAMERAS+1}"
+    cameras.append(camera)
+
+    bpy.ops.object.camera_add(location=(0, 5, 12))
+    camera = bpy.context.active_object
+    direction = target - camera.location
+    rot_quat = direction.to_track_quat('-Z', 'Y')
+    camera.rotation_euler = rot_quat.to_euler()
+    camera.name = f"Camera_{NUM_CAMERAS+2}"
+    cameras.append(camera)
+
     bpy.context.scene.camera = camera
     return cameras
 
@@ -37,23 +54,14 @@ def setup_blenderproc_rendering():
 
 def render_all_cameras(cameras, imported_objects):
     """모든 카메라로 렌더링"""
-    all_images = []
-    all_annotations = []
-    all_categories = []
-    annotation_id = 1
-    image_id = 1
-    
     # 출력 디렉토리 생성
-    images_dir = os.path.join(OUTPUT_DIR, "images")
-    os.makedirs(images_dir, exist_ok=True)
     os.makedirs(os.path.join(OUTPUT_DIR, "hdf5"), exist_ok=True)
+    
+    # BlenderProc 카메라 포즈 초기화 (기존 포즈 제거)
+    bproc.camera.set_resolution(RENDER_RESOLUTION, RENDER_RESOLUTION)
     
     for frame in RENDER_FRAMES:
         for i, cam in enumerate(cameras):
-            # BlenderProc 카메라 포즈 설정
-            cam_matrix = cam.matrix_world
-            bproc.camera.add_camera_pose(cam_matrix)
-            
             # 현재 프레임으로 설정
             bpy.context.scene.frame_set(frame)
             bpy.context.view_layer.update()
@@ -69,7 +77,12 @@ def render_all_cameras(cameras, imported_objects):
                     obj.hide_render = False
                     obj.hide_viewport = False
             
-            # 렌더링
+            # BlenderProc 카메라 포즈 설정 (각 카메라마다)
+            bpy.context.scene.camera = cam
+            cam_matrix = cam.matrix_world
+            bproc.camera.add_camera_pose(cam_matrix)
+            print(bproc.camera.get_camera_pose())
+            # 한 번에 모든 데이터 렌더링
             bpy.context.scene.frame_start = frame
             bpy.context.scene.frame_end = frame + 1
             data = bproc.renderer.render()
