@@ -72,12 +72,30 @@ bpy.ops.rigidbody.object_add()
 board.rigid_body.type = 'PASSIVE'
 board.rigid_body.collision_shape = 'BOX'
 
+# 벽 4개 생성 (물리 충돌용, 렌더링 제외)
+wall_positions = [(8, 0, 2), (-8, 0, 2), (0, 8, 2), (0, -8, 2)]
+wall_scales = [(0.5, 8, 50), (0.5, 8, 50), (8, 0.5, 50), (8, 0.5, 50)]
+walls = []
+
+for i, (pos, scale) in enumerate(zip(wall_positions, wall_scales)):
+    bpy.ops.mesh.primitive_cube_add(location=pos, scale=scale)
+    wall = bpy.context.active_object
+    wall.name = f"Wall_{i+1}"
+    wall.hide_render = True  # 렌더링에서 제외
+    wall.hide_viewport = False
+    walls.append(wall)
+    
+    bpy.context.view_layer.objects.active = wall
+    bpy.ops.rigidbody.object_add()
+    wall.rigid_body.type = 'PASSIVE'
+    wall.rigid_body.collision_shape = 'BOX'
+
 # GLB 임포트 
 for glb_file in glb_paths:
     bpy.ops.import_scene.gltf(filepath=glb_file)
 
-# 메시 오브젝트 필터링 (보드 제외)
-imported_objects = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and obj != board]
+# 메시 오브젝트 필터링 (보드, 벽 제외)
+imported_objects = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and obj != board and obj not in walls]
 
 # 랜덤 위치/회전 + Rigidbody 적용
 for i, obj in enumerate(imported_objects):
@@ -104,15 +122,11 @@ for i, obj in enumerate(imported_objects):
     # 스케일 비율 계산
     scale_factor = target_length / max_dim
     
-    # 스케일 적용 (기존 스케일 고려)
-    
-    print(f"Object {i+1} scaled to {obj.scale}")
-    # bpy.ops.transform.resize(value=(obj.scale[0], obj.scale[1], obj.scale[2]))
     # 위치 랜덤 지정
     obj.location = (
         random.uniform(*move_range),
         random.uniform(*move_range),
-        10
+        random.uniform(5, 10)  # z축은 0.1 이상으로 설정
     )
     
     # 회전 랜덤 지정
@@ -243,10 +257,12 @@ for frame in render_frames:
             if obj.location.z < 0:
                 obj.hide_render = True
                 obj.hide_viewport = True
+                obj.hide_render = True
                 hidden_objects.append(obj)
             else:
                 obj.hide_render = False
                 obj.hide_viewport = False
+                obj.hide_render = False
         # 한 번에 모든 데이터 렌더링
         bpy.context.scene.frame_start = frame
         bpy.context.scene.frame_end = frame + 1
