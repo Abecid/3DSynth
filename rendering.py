@@ -7,7 +7,7 @@ import os
 import numpy as np
 from config import *
 from utils import random_value
-
+import pdb
 def create_cameras():
     """카메라들 생성"""
     cameras = []
@@ -50,7 +50,7 @@ def setup_blenderproc_rendering():
     bproc.camera.set_resolution(RENDER_RESOLUTION, RENDER_RESOLUTION)
     bproc.renderer.enable_normals_output()
     bproc.renderer.enable_depth_output(activate_antialiasing=False, convert_to_distance=True)
-    bproc.renderer.enable_segmentation_output(map_by=["category_id"])
+    bproc.renderer.enable_segmentation_output(map_by=["instance","class","name"]) # category_id
 
 def render_all_cameras(cameras, imported_objects):
     """모든 카메라로 렌더링"""
@@ -74,6 +74,7 @@ def render_all_cameras(cameras, imported_objects):
                     obj.hide_viewport = True
                     hidden_objects.append(obj)
                 else:
+                    obj.to_mesh()
                     obj.hide_render = False
                     obj.hide_viewport = False
             
@@ -90,10 +91,11 @@ def render_all_cameras(cameras, imported_objects):
             # HDF5 저장
             hdf5_dir = os.path.join(OUTPUT_DIR, "hdf5")
             bproc.writer.write_hdf5(os.path.join(hdf5_dir, f'{frame:04d}_{cam.name}.hdf5'), data)
-            
+            print(data.keys())
+            # pdb.set_trace()
             # COCO 어노테이션 저장
             bproc.writer.write_coco_annotations(os.path.join(OUTPUT_DIR, 'coco_data'),
-                                        instance_segmaps=data["category_id_segmaps"],
+                                        instance_segmaps=data["instance_segmaps"],
                                         instance_attribute_maps=data["instance_attribute_maps"],
                                         colors=data["colors"],
                                         color_file_format="JPEG")

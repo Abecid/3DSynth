@@ -2,26 +2,33 @@
 import blenderproc as bproc
 import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+sys.path.append(script_dir)
+
+import importlib.util
+
+config_path = os.path.join(script_dir, "config.py")
+spec = importlib.util.spec_from_file_location("config", config_path)
+config = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(config)
+
 import argparse
-from scene_setup import setup_gpu, clear_scene, create_board, create_walls, import_and_setup_objects, setup_hdri
-from physics import setup_physics, run_physics_simulation
-from rendering import create_cameras, setup_blenderproc_rendering, render_all_cameras
-from config import OUTPUT_DIR, GLB_PATHS
+from config import OUTPUT_DIR, GLB_PATHS, RENDER_FRAMES, NUM_CAMERAS, RENDER_RESOLUTION
 
 def main():
-    global OUTPUT_DIR, RENDER_FRAMES, NUM_CAMERAS, RENDER_RESOLUTION
+    global OUTPUT_DIR, GLB_PATHS, RENDER_FRAMES, NUM_CAMERAS, RENDER_RESOLUTION
 
     
     parser = argparse.ArgumentParser(description='BlenderProc Physics Simulation and Rendering')
     parser.add_argument('--output', '-o', default=OUTPUT_DIR, 
                        help='Output directory path')
-    parser.add_argument('--frames', '-f', nargs='+', type=int, default=[50, 100, 200],
+    parser.add_argument('--frames', '-f', nargs='+', type=int, default=RENDER_FRAMES,
                        help='Frames to render (e.g., --frames 50 100 200)')
-    parser.add_argument('--glb', '-g', nargs='+', type=int, default=GLB_PATHS,
+    parser.add_argument('--glb', '-g', nargs='+', type=str, default=[],
                        help='Frames to render (e.g., --frames /home/donghoon/Blender-python/glb_files/textured_mesh.glb /home/donghoon/Blender-python/glb_files/textured_mesh.glb /home/donghoon/Blender-python/glb_files/textured_mesh.glb)')
-    parser.add_argument('--cameras', '-c', type=int, default=14,
+    parser.add_argument('--cameras', '-c', type=int, default=NUM_CAMERAS,
                        help='Number of cameras to create')
-    parser.add_argument('--resolution', '-r', type=int, default=512,
+    parser.add_argument('--resolution', '-r', type=int, default=RENDER_RESOLUTION,
                        help='Render resolution (square)')
     parser.add_argument('--no-gpu', action='store_true',
                        help='Disable GPU rendering')
@@ -29,11 +36,11 @@ def main():
     args = parser.parse_args()
     
     # 설정 업데이트
-    OUTPUT_DIR = args.output
-    
+
     # config 모듈의 변수들을 동적으로 업데이트
     import config
     config.OUTPUT_DIR = args.output
+    config.GLB_PATHS = args.glb
     config.RENDER_FRAMES = args.frames
     config.NUM_CAMERAS = args.cameras
     config.RENDER_RESOLUTION = args.resolution
@@ -50,6 +57,10 @@ def main():
     # BlenderProc 초기화
     bproc.init()
     
+
+    from scene_setup import setup_gpu, clear_scene, create_board, create_walls, import_and_setup_objects, setup_hdri
+    from physics import setup_physics, run_physics_simulation
+    from rendering import create_cameras, setup_blenderproc_rendering, render_all_cameras
     # GPU 설정 (옵션)
     if not args.no_gpu:
         setup_gpu()

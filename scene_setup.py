@@ -64,6 +64,21 @@ def import_and_setup_objects(board, walls):
     """GLB 객체들 임포트 및 설정"""
     for glb_file in GLB_PATHS:
         bpy.ops.import_scene.gltf(filepath=glb_file)
+        imported = bpy.context.selected_objects
+        
+        # mesh만 필터링
+        meshes = [obj for obj in imported if obj.type == 'MESH']
+        if not meshes:
+            continue
+        
+        # 하나의 mesh로 병합
+        bpy.context.view_layer.objects.active = meshes[0]
+        for m in meshes:
+            m.select_set(True)
+        bpy.ops.object.join()
+        
+        # 이제 active object가 합쳐진 하나의 mesh
+        obj = bpy.context.active_object
         for obj in bpy.context.selected_objects:
             obj.name = os.path.dirname(glb_file).split('/')[-1]
             json_file = os.path.join(os.path.dirname(glb_file), 'size.json')
@@ -104,12 +119,14 @@ def import_and_setup_objects(board, walls):
         obj.matrix_world = loc_matrix @ rot_matrix @ scale_matrix
         
         obj_bproc = bproc.python.types.MeshObjectUtility.MeshObject(obj)
-        category_id = MAPPING_ID[obj.name.split('.')[0]]
+        try:category_id = MAPPING_ID[obj.name.split('.')[0]]
+        except : category_id = MAPPING_ID[obj.name]
         obj_bproc.set_cp("category_id", category_id)
         
         bpy.ops.rigidbody.object_add()
         obj.rigid_body.type = 'ACTIVE'
         obj.rigid_body.collision_shape = 'CONVEX_HULL'
+        obj.rigid_body.collision_margin = 0.001
         obj.rigid_body.restitution = 0.0
         obj.rigid_body.friction = 1.0
         obj.rigid_body.linear_damping = 0.9

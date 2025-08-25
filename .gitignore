@@ -20,3 +20,5 @@ output/
 *.cache
 *.DS_Store
 *.vscode/
+상품 이미지/*
+

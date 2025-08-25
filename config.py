@@ -1,6 +1,6 @@
 import os
 # Mapping ID for GLB files
-MAPPING_ID = {'can': 1, 'bottle': 2, 'box': 3, 'cup': 4, 'plate': 5}
+MAPPING_ID = {'can': 1, 'bottle': 2, 'box': 3, 'cup': 4, 'plate': 5, 'snack': 6, 'milk': 7, 'mealkit': 8, 'cereal': 9, 'fruit': 10}
 
 # 파일 경로
 BOARD_PATH = "/home/donghoon/Blender-python/glb_files/board.glb"
@@ -13,8 +13,8 @@ HDRI_DIR = "/home/donghoon/Blender-python/background"
 # 시뮬레이션 설정
 MOVE_RANGE = (-5, 5)
 FRAME_START = 1
-FRAME_END = 200
-RENDER_FRAMES = [200]
+FRAME_END = 250
+RENDER_FRAMES = [250]
 
 # 카메라 설정
 NUM_CAMERAS = 5
