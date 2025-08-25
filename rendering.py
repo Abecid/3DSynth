@@ -8,6 +8,7 @@ import numpy as np
 from config import *
 from utils import random_value
 import pdb
+
 def create_cameras():
     """카메라들 생성"""
     cameras = []
@@ -92,7 +93,6 @@ def render_all_cameras(cameras, imported_objects):
             hdf5_dir = os.path.join(OUTPUT_DIR, "hdf5")
             bproc.writer.write_hdf5(os.path.join(hdf5_dir, f'{frame:04d}_{cam.name}.hdf5'), data)
             print(data.keys())
-            # pdb.set_trace()
             # COCO 어노테이션 저장
             bproc.writer.write_coco_annotations(os.path.join(OUTPUT_DIR, 'coco_data'),
                                         instance_segmaps=data["instance_segmaps"],

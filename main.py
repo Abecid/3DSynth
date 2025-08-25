@@ -4,7 +4,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 sys.path.append(script_dir)
-
+import pdb
 import importlib.util
 
 config_path = os.path.join(script_dir, "config.py")
@@ -77,8 +77,9 @@ def main():
     print("Running physics simulation...")
     scene = setup_physics()
     setup_hdri()
+    # pdb.set_trace()
+
     run_physics_simulation(scene)
-    
     # 카메라 생성 및 렌더링 (물리 시뮬레이션 후)
     print("Creating cameras and rendering...")
     cameras = create_cameras()
