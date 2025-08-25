@@ -5,7 +5,7 @@ import json
 import math
 from mathutils import Euler, Matrix
 from config import *
-
+import numpy as np
 def setup_gpu():
     """GPU 렌더링 설정"""
     bpy.context.scene.render.engine = 'CYCLES'
@@ -97,11 +97,23 @@ def import_and_setup_objects(board, walls):
         bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
         obj = bpy.context.active_object
         
-        dims = obj.dimensions
-        max_dim = max(dims)
         target_length = random.uniform(obj['min_size'], obj['max_size'])
-        scale_factor = target_length / max_dim
-        
+
+        # # x,y,z 축 중 가장 큰 길이를 기준으로 스케일링
+        # dims = obj.dimensions
+        # max_dim = max(dims)
+        # scale_factor = target_length / max_dim
+
+        # PCA 기반 스케일링
+        vertices = np.array([obj.matrix_world @ v.co for v in obj.data.vertices])
+        vertices_centered = vertices - np.mean(vertices, axis=0)
+        cov = np.cov(vertices_centered.T)
+        eigenvalues, eigenvectors = np.linalg.eig(cov)
+        principal_axis = eigenvectors[:, np.argmax(eigenvalues)]
+        projections = np.dot(vertices_centered, principal_axis)
+        length = projections.max() - projections.min()
+        scale_factor = target_length / length
+
         obj.location = (
             random.uniform(*MOVE_RANGE),
             random.uniform(*MOVE_RANGE),
