@@ -9,9 +9,10 @@ import numpy as np
 import json
 from itertools import product
 import argparse
-
+from config import *
+import pdb
 parser = argparse.ArgumentParser(description='Generate Dataset using BlenderProc')
-parser.add_argument('--glb_dir', type=str, default='/home/donghoon/Blender-python/glb_files',
+parser.add_argument('--glb_dir', type=str, default='/home/donghoon/Blender-python/glb_file_l',
                     help='Directory containing GLB files')
 parser.add_argument('--debug', action='store_true',
                     help='Run in debug mode')
@@ -29,13 +30,16 @@ for folder_name in os.listdir(glb_dir):
             if file_name.endswith('.glb'):
                 glb_file_paths.append(os.path.join(folder_path, file_name))
 print(glb_file_paths)
-
-for _ in range(SAMPLE_NUM):
+for i, path in enumerate(os.listdir(glb_dir)):
+    MAPPING_ID[path] = i + 1
+print(MAPPING_ID)
+# pdb.set_trace()
+for i in range(SAMPLE_NUM):
     glb_paths = random.sample(glb_file_paths, 10)
     print(glb_paths)
     if debug_mode: 
-        subprocess.run(['blenderproc', 'debug', 'main.py', '--glb', *map(str, glb_file_paths)])
+        subprocess.run(['blenderproc', 'debug', 'main.py', '--glb', *map(str, glb_file_paths), '--scene_num', f'{i}'])
     else:
-        subprocess.run(['blenderproc', 'run', 'main.py', '--glb', *map(str, glb_paths)])
+        subprocess.run(['blenderproc', 'run', 'main.py', '--glb', *map(str, glb_paths), '--scene_num', f'{i}'])
 
 

@@ -32,7 +32,8 @@ def main():
                        help='Render resolution (square)')
     parser.add_argument('--no-gpu', action='store_true',
                        help='Disable GPU rendering')
-    
+    parser.add_argument('--scene_num', type=str, default='',
+                       help='Scene number identifier for output files')
     args = parser.parse_args()
     
     # 설정 업데이트
@@ -84,7 +85,7 @@ def main():
     print("Creating cameras and rendering...")
     cameras = create_cameras()
     setup_blenderproc_rendering()
-    render_all_cameras(cameras, imported_objects)
+    render_all_cameras(cameras, imported_objects, args.scene_num)
     
     print(f"Simulation completed! Results saved to: {args.output}")
 

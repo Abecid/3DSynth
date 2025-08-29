@@ -6,6 +6,7 @@ import math
 from mathutils import Euler, Matrix
 from config import *
 import numpy as np
+import pdb
 def setup_gpu():
     """GPU 렌더링 설정"""
     bpy.context.scene.render.engine = 'CYCLES'
@@ -131,9 +132,10 @@ def import_and_setup_objects(board, walls):
         obj.matrix_world = loc_matrix @ rot_matrix @ scale_matrix
         
         obj_bproc = bproc.python.types.MeshObjectUtility.MeshObject(obj)
-        try:category_id = MAPPING_ID[obj.name.split('.')[0]]
+        try: category_id = MAPPING_ID[obj.name.split('.')[0]]
         except : category_id = MAPPING_ID[obj.name]
         obj_bproc.set_cp("category_id", category_id)
+        obj_bproc.set_cp("instance_id", i)
         
         bpy.ops.rigidbody.object_add()
         obj.rigid_body.type = 'ACTIVE'

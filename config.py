@@ -1,7 +1,6 @@
 import os
 # Mapping ID for GLB files
-MAPPING_ID = {'can': 1, 'bottle': 2, 'box': 3, 'cup': 4, 'plate': 5, 'snack': 6, 'milk': 7, 'mealkit': 8, 'cereal': 9, 'fruit': 10}
-
+MAPPING_ID = {'상온HMR': 1, '과자': 2, '주류': 3, '커피차': 4, '소스': 5, '통조림': 6, '생활용품': 7, '면류': 8, '의약외품': 9, '음료': 10, '이-미용': 11, '유제품': 12, '홈클린': 13}
 # 파일 경로
 BOARD_PATH = "/home/donghoon/Blender-python/glb_files/board.glb"
 GLB_PATHS = [
