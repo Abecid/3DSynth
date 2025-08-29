@@ -6,7 +6,7 @@ script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 sys.path.append(script_dir)
 import pdb
 import importlib.util
-
+import time
 config_path = os.path.join(script_dir, "config.py")
 spec = importlib.util.spec_from_file_location("config", config_path)
 config = importlib.util.module_from_spec(spec)
@@ -57,7 +57,7 @@ def main():
     
     # BlenderProc 초기화
     bproc.init()
-    
+    start = time.time()
 
     from scene_setup import setup_gpu, clear_scene, create_board, create_walls, import_and_setup_objects, setup_hdri
     from physics import setup_physics, run_physics_simulation
@@ -74,6 +74,11 @@ def main():
     walls = create_walls()
     imported_objects = import_and_setup_objects(board, walls)
     
+    import bpy
+    print("Render Engine:", bpy.context.scene.render.engine)
+    prefs = bpy.context.preferences.addons['cycles'].preferences
+    prefs.get_devices()
+    for d in prefs.devices: print(d.name, d.type, d.use)
     # 물리 시뮬레이션
     print("Running physics simulation...")
     scene = setup_physics()
@@ -86,7 +91,8 @@ def main():
     cameras = create_cameras()
     setup_blenderproc_rendering()
     render_all_cameras(cameras, imported_objects, args.scene_num)
-    
+    end = time.time()
+    print(f"Total time: {end - start:.2f} seconds")
     print(f"Simulation completed! Results saved to: {args.output}")
 
 if __name__ == "__main__":

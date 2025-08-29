@@ -66,14 +66,15 @@ def setup_blenderproc_rendering():
     """BlenderProc 렌더링 설정"""
     bproc.camera.set_resolution(RENDER_RESOLUTION, RENDER_RESOLUTION)
     bproc.renderer.set_output_format("JPEG", jpg_quality=90)
-    bproc.renderer.set_render_devices(['CUDA','OPTIX','HIP'], desired_gpu_device_type=[0])
+    # bproc.renderer.set_render_devices(['CUDA','OPTIX','HIP'], desired_gpu_device_type=[0])
+    bproc.renderer.set_render_devices()
 
     # bproc.renderer.enable_normals_output()
     # bproc.renderer.enable_depth_output(activate_antialiasing=False, convert_to_distance=True)
     bproc.renderer.enable_segmentation_output(map_by=["instance","class","name"]) # category_id
-
+    # pdb.set_trace()
 def render_all_cameras(cameras, imported_objects, scene_num):
-    """모든 카메라로 렌더링"""
+    # """모든 카메라로 렌더링"""
     os.makedirs(os.path.join(OUTPUT_DIR, "hdf5"), exist_ok=True)
     
     # BlenderProc 카메라 포즈 초기화 (기존 포즈 제거)
@@ -88,7 +89,7 @@ def render_all_cameras(cameras, imported_objects, scene_num):
             obj.to_mesh()
             obj.hide_render = False
             obj.hide_viewport = False
-
+    # for single batch 
     for frame in RENDER_FRAMES:
         for i, cam in enumerate(cameras):
             bpy.context.scene.frame_set(frame)
@@ -118,10 +119,66 @@ def render_all_cameras(cameras, imported_objects, scene_num):
                                         color_file_format="JPEG",
                                         file_prefix=f'{scene_num}_{cam.name}_',
                                         indent=4)
-            
+            print(f'COCO annotations saved for scene_num {scene_num} and camera {cam.name}')
             numpy_data = data["instance_segmaps"][0]
             os.makedirs(os.path.join(OUTPUT_DIR, 'instance_segmap'), exist_ok=True)
             np.save(os.path.join(OUTPUT_DIR, 'instance_segmap', f'{scene_num}_{cam.name}.npy'), numpy_data)
 
             # 다음 카메라를 위해 현재 포즈 제거
             bproc.camera.set_resolution(RENDER_RESOLUTION, RENDER_RESOLUTION) 
+    # for frame in RENDER_FRAMES:
+    #     bpy.context.scene.frame_set(frame)
+    #     bpy.context.view_layer.update()
+        
+    #     # **중요: 이전 키프레임 초기화**
+    #     bproc.utility.reset_keyframes()
+        
+    #     # **모든 카메라 포즈를 한 번에 등록**
+    #     # 각 카메라 포즈가 별도 키프레임으로 추가됨
+    #     for cam in cameras:
+    #         bproc.camera.add_camera_pose(cam.matrix_world)
+        
+    #     # 프레임 범위 설정 (모든 카메라 포즈 렌더링)
+    #     bpy.context.scene.frame_start = frame
+    #     bpy.context.scene.frame_end = frame + len(cameras)
+        
+    #     # **배치 렌더링 실행**
+    #     # 모든 카메라 포즈에서 렌더링 (키프레임 개수만큼)
+    #     data = bproc.renderer.render()
+        
+    #     # **각 카메라별로 결과 저장**
+    #     for i, cam in enumerate(cameras):
+    #         # HDF5 저장
+    #         hdf5_path = os.path.join(OUTPUT_DIR, "hdf5", f'{frame:04d}_{cam.name}.hdf5')
+    #         os.makedirs(os.path.dirname(hdf5_path), exist_ok=True)
+    #         pdb.set_trace()
+    #         # bproc.writer.write_hdf5(hdf5_path, {
+    #         #     "instance_segmaps": [data["instance_segmaps"][i]],
+    #         #     "instance_attribute_maps": [data["instance_attribute_maps"][i]], 
+    #         #     "colors": [data["colors"][i]],
+    #         # })
+            
+    #         # COCO 저장
+    #         coco_dir = os.path.join(OUTPUT_DIR, 'coco_data')
+    #         os.makedirs(coco_dir, exist_ok=True)
+            
+    #         bproc.writer.write_coco_annotations(
+    #             coco_dir,
+    #             instance_segmaps=[data["instance_segmaps"][i]],
+    #             instance_attribute_maps=[data["instance_attribute_maps"][i]],
+    #             colors=[data["colors"][i]],
+    #             color_file_format="JPEG",
+    #             file_prefix=f'{scene_num}_{cam.name}_',
+    #             indent=4
+    #         )
+
+    #         bproc.writer.write_coco_annotations(coco_dir,instance_segmaps=data["instance_segmaps"],instance_attribute_maps=data["instance_attribute_maps"],colors=data["colors"],color_file_format="JPEG",file_prefix=f'{scene_num}_{cam.name}_',indent=4)
+
+    #         pdb.set_trace()
+    #         print(f'COCO annotations saved for scene_num {scene_num} and camera {cam.name}')
+            
+    #         # Numpy instance_segmap 저장
+    #         segmap_dir = os.path.join(OUTPUT_DIR, 'instance_segmap')
+    #         os.makedirs(segmap_dir, exist_ok=True)
+    #         np.save(os.path.join(segmap_dir, f'{scene_num}_{cam.name}.npy'),
+    #                 data["instance_segmaps"][i])

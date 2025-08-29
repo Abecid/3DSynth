@@ -12,8 +12,8 @@ HDRI_DIR = "/home/donghoon/Blender-python/background"
 # 시뮬레이션 설정
 MOVE_RANGE = (-5, 5)
 FRAME_START = 1
-FRAME_END = 250
-RENDER_FRAMES = [250]
+FRAME_END = 300
+RENDER_FRAMES = [300]
 
 # 카메라 설정
 NUM_CAMERAS = 5

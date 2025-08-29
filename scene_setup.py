@@ -11,14 +11,24 @@ def setup_gpu():
     """GPU 렌더링 설정"""
     bpy.context.scene.render.engine = 'CYCLES'
     prefs = bpy.context.preferences.addons['cycles'].preferences
-    prefs.compute_device_type = 'CUDA'
+    prefs.compute_device_type = 'OPTIX' # 'CUDA', 'OPTIX', 'OPENCL', 'HIP' 중 하나 선택
     prefs.get_devices()
     devices = prefs.devices
     if devices:
         for device in devices:
-            if device.type in {'CUDA', 'OPTIX', 'OPENCL'}:
+            if device.type in {'CUDA', 'OPTIX', 'OPENCL', 'HIP'}:
                 device.use = True
+            elif device.type == 'CPU':
+                device.use = False
         bpy.context.scene.cycles.device = 'GPU'
+    # GPU에 맞는 타일 크기 세팅
+    tile_size = 2048
+    bpy.context.scene.cycles.tile_x = tile_size
+    bpy.context.scene.cycles.tile_y = tile_size
+
+    # (옵션) 샘플 수 및 Denoiser 켜기
+    bpy.context.scene.cycles.samples = 128
+    bpy.context.scene.cycles.use_denoising = True
 
 def clear_scene():
     """기존 오브젝트 삭제"""
