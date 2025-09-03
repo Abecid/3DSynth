@@ -21,4 +21,12 @@ output/
 *.DS_Store
 *.vscode/
 상품 이미지/*
-
+output/*
+images/*
+*.pth
+*.glb
+*.blend
+*.hdf5
+*.npy
+*.JPG
+*.jpg
