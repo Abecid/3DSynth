@@ -2,8 +2,8 @@
 *.jpg
 *.json
 output/
-*.glb
-*.txt
+# *.glb
+# *.txt
 *.pyc
 *.png
 *.exr
@@ -30,3 +30,4 @@ images/*
 *.npy
 *.JPG
 *.jpg
+__pycahche__/

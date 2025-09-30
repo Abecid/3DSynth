@@ -142,8 +142,8 @@ def import_and_setup_objects(board, walls):
         obj.matrix_world = loc_matrix @ rot_matrix @ scale_matrix
         
         obj_bproc = bproc.python.types.MeshObjectUtility.MeshObject(obj)
-        try: category_id = MAPPING_ID[obj.name.split('.')[0]]
-        except : category_id = MAPPING_ID[obj.name]
+        
+        category_id = obj.name
         obj_bproc.set_cp("category_id", category_id)
         obj_bproc.set_cp("instance_id", i)
         

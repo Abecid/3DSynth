@@ -1,0 +1,9 @@
+absl-py==2.3.0
+cycler==0.12.1
+debugpy==1.8.16
+fake-bpy-module-latest==20250630
+grpcio==1.72.1
+h5py==3.14.0
+plotly==6.1.2
+# setuptools==78.1.1
+blenderproc

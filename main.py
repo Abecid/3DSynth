@@ -4,9 +4,10 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 sys.path.append(script_dir)
-import pdb
+
 import importlib.util
 import time
+
 config_path = os.path.join(script_dir, "config.py")
 spec = importlib.util.spec_from_file_location("config", config_path)
 config = importlib.util.module_from_spec(spec)
@@ -45,7 +46,6 @@ def main():
     config.RENDER_FRAMES = args.frames
     config.NUM_CAMERAS = args.cameras
     config.RENDER_RESOLUTION = args.resolution
-    
     # 출력 디렉토리 생성
     os.makedirs(args.output, exist_ok=True)
     
@@ -83,7 +83,6 @@ def main():
     print("Running physics simulation...")
     scene = setup_physics()
     setup_hdri()
-    # pdb.set_trace()
 
     run_physics_simulation(scene)
     # 카메라 생성 및 렌더링 (물리 시뮬레이션 후)

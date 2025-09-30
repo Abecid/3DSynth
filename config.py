@@ -1,13 +1,11 @@
 import os
 # Mapping ID for GLB files
-MAPPING_ID = {'상온HMR': 1, '과자': 2, '주류': 3, '커피차': 4, '소스': 5, '통조림': 6, '생활용품': 7, '면류': 8, '의약외품': 9, '음료': 10, '이-미용': 11, '유제품': 12, '홈클린': 13}
+MAPPING_ID = {'상온HMR': 13, '과자': 15, '주류': 6, '커피차': 1, '소스': 7, '통조림': 16, '생활용품': 12, '면류': 8, '의약외품': 3, '음료': 5, '이-미용': 2, '유제품': 10, '홈클린': 11, '빵': 9, '안주': 14}
 # 파일 경로
-BOARD_PATH = "/home/donghoon/Blender-python/glb_files/board.glb"
-GLB_PATHS = [
-    "/home/donghoon/Blender-python/glb_files/can/can1.glb",
-] * 10
-OUTPUT_DIR = "/home/donghoon/Blender-python/output"
-HDRI_DIR = "/home/donghoon/Blender-python/background"
+BOARD_PATH = "assets/board.glb"
+GLB_PATHS = []
+OUTPUT_DIR = "output"
+HDRI_DIR = "background"
 
 # 시뮬레이션 설정
 MOVE_RANGE = (-5, 5)
