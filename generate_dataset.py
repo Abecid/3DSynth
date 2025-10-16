@@ -6,10 +6,15 @@ import subprocess
 import random
 import argparse
 from collections import defaultdict
+import datetime
 
 from config import *
 
 SAMPLE_NUM = 4
+NUM_CASES = 10
+
+# MM-DD-HH-MM
+DATETIME_NOW = datetime.datetime.now().strftime("%m-%d-%H-%M")
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate Dataset using BlenderProc')
@@ -39,14 +44,15 @@ def main(args):
         if os.path.isdir(os.path.join(glb_dir, path)):
             MAPPING_ID[path] = i + 1
     print(MAPPING_ID)
-    
-    glb_paths = random.sample(glb_paths, SAMPLE_NUM)
-    print(glb_paths)
 
-    if args.debug: 
-        subprocess.run(['blenderproc', 'debug', 'main.py', '--glb', *map(str, glb_file_paths)])
-    else:
-        subprocess.run(['blenderproc', 'run', 'main.py', '--glb', *map(str, glb_paths)])
+
+    for scene_num in range(NUM_CASES):
+        glb_paths = random.sample(glb_paths, SAMPLE_NUM)
+        print(glb_paths)
+        if args.debug: 
+            subprocess.run(['blenderproc', 'debug', 'main.py', '--glb', *map(str, glb_file_paths), '-o', f"output/{DATETIME_NOW}/{scene_num}"])
+        else:
+            subprocess.run(['blenderproc', 'run', 'main.py', '--glb', *map(str, glb_paths), '-o', f"output/{DATETIME_NOW}/{scene_num}"])
 
 if __name__ == "__main__":
     args = parse_args()

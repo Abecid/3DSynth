@@ -6,7 +6,9 @@ import math
 from mathutils import Euler, Matrix
 from config import *
 import numpy as np
-import pdb
+
+from utils import get_orientations
+
 def setup_gpu():
     """GPU 렌더링 설정"""
     bpy.context.scene.render.engine = 'CYCLES'
@@ -71,12 +73,14 @@ def create_walls():
     
     return walls
 
-def import_and_setup_objects(board, walls):
+def import_and_setup_objects(board, walls, objects_info):
     """GLB 객체들 임포트 및 설정"""
     for glb_file in GLB_PATHS:
         bpy.ops.import_scene.gltf(filepath=glb_file)
         imported = bpy.context.selected_objects
-        
+
+        get_orientations(imported, objects_info, "original")
+
         # mesh만 필터링
         meshes = [obj for obj in imported if obj.type == 'MESH']
         if not meshes:
@@ -111,9 +115,9 @@ def import_and_setup_objects(board, walls):
         target_length = random.uniform(obj['min_size'], obj['max_size'])
 
         # # x,y,z 축 중 가장 큰 길이를 기준으로 스케일링
-        # dims = obj.dimensions
-        # max_dim = max(dims)
-        # scale_factor = target_length / max_dim
+        dims = obj.dimensions
+        max_dim = max(dims)
+        scale_factor = target_length / max_dim
 
         # PCA 기반 스케일링
         vertices = np.array([obj.matrix_world @ v.co for v in obj.data.vertices])
@@ -143,7 +147,7 @@ def import_and_setup_objects(board, walls):
         
         obj_bproc = bproc.python.types.MeshObjectUtility.MeshObject(obj)
         
-        category_id = obj.name
+        category_id = obj.name.split(".")[0]
         obj_bproc.set_cp("category_id", category_id)
         obj_bproc.set_cp("instance_id", i)
         

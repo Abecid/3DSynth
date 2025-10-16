@@ -73,9 +73,9 @@ def setup_blenderproc_rendering():
     # bproc.renderer.enable_depth_output(activate_antialiasing=False, convert_to_distance=True)
     bproc.renderer.enable_segmentation_output(map_by=["instance","class","name"]) # category_id
     # pdb.set_trace()
-def render_all_cameras(cameras, imported_objects, scene_num):
+def render_all_cameras(cameras, imported_objects, scene_num, out_type="hdf5"):
     # """모든 카메라로 렌더링"""
-    os.makedirs(os.path.join(OUTPUT_DIR, "hdf5"), exist_ok=True)
+    os.makedirs(os.path.join(OUTPUT_DIR, out_type), exist_ok=True)
     
     # BlenderProc 카메라 포즈 초기화 (기존 포즈 제거)
     bproc.camera.set_resolution(RENDER_RESOLUTION, RENDER_RESOLUTION)
@@ -108,7 +108,7 @@ def render_all_cameras(cameras, imported_objects, scene_num):
             data = bproc.renderer.render()
             
             # HDF5 저장
-            hdf5_dir = os.path.join(OUTPUT_DIR, "hdf5")
+            hdf5_dir = os.path.join(OUTPUT_DIR, out_type)
             # bproc.writer.write_hdf5(os.path.join(hdf5_dir, f'{frame:04d}_{cam.name}.hdf5'), data)
             print(data.keys())
             # COCO 어노테이션 저장
