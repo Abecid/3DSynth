@@ -99,8 +99,8 @@ def import_and_setup_objects(board, walls, objects_info):
             json_file = os.path.join(os.path.dirname(glb_file), 'size.json')
             with open(json_file, 'r') as f:
                 size_data = json.load(f)
-                obj['min_size'] = size_data.get("min_size", 6.0)
-                obj['max_size'] = size_data.get("max_size", 12.0)
+                obj['min'] = 2 # size_data.get("min", 1.0)
+                obj['max'] = 3 # size_data.get("max", 1.0)
     imported_objects = [obj for obj in bpy.context.scene.objects 
                        if obj.type == 'MESH' and obj != board and obj not in walls]
     
@@ -112,7 +112,7 @@ def import_and_setup_objects(board, walls, objects_info):
         bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
         obj = bpy.context.active_object
         
-        target_length = random.uniform(obj['min_size'], obj['max_size'])
+        target_length = random.uniform(obj['min'], obj['max'])
 
         # # x,y,z 축 중 가장 큰 길이를 기준으로 스케일링
         dims = obj.dimensions

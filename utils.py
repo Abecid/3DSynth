@@ -30,9 +30,9 @@ def compute_axes_lengths(obj):
 
     # Create axis vectors from the center (like local x, y, z coverage)
     axes = {
-        "x": ([half_lengths[0], 0, 0]).tolist(),
-        "y": ([0, half_lengths[1], 0]).tolist(),
-        "z": ([0, 0, half_lengths[2]]).tolist(),
+        "x": ([half_lengths[0], 0, 0]),
+        "y": ([0, half_lengths[1], 0]),
+        "z": ([0, 0, half_lengths[2]]),
     }
 
     return {
