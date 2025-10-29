@@ -6,6 +6,7 @@ import math
 from mathutils import Euler, Matrix
 from config import *
 import numpy as np
+import mathutils
 
 from utils import get_orientations
 
@@ -38,40 +39,161 @@ def clear_scene():
     bpy.ops.object.delete()
 
 def create_board():
-    """보드 생성 및 설정"""
+    """보드 생성 및 설정 (정확히 50x36x2.5 cm)"""
+    TARGET_DIMS = np.array([0.50, 0.36, 0.025])  # meters
+
+    # Import the board
     bpy.ops.import_scene.gltf(filepath=BOARD_PATH)
     board = bpy.context.active_object
-    board.location = (0, 0, -0.6)
+    print(">>> Board raw dimensions (m):", board.dimensions)
     board.name = "Board"
-    board.scale.z = 1.0
-    
+
+    # --- Center origin at geometric center ---
+    bpy.context.view_layer.objects.active = board
+    bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+
+    # Measure current dimensions
+    bpy.context.view_layer.update()
+    current_dims = np.array(board.dimensions)
+    # Sort both by size so orientation doesn’t matter
+    sorted_target = np.sort(TARGET_DIMS)
+    sorted_current = np.sort(current_dims)
+
+    # Compute scale factors so that smallest→smallest etc.
+    scale_factors = sorted_target / sorted_current
+    # Map them back to original axis order
+    order = np.argsort(current_dims)
+    full_scale = np.zeros(3)
+    full_scale[order] = scale_factors
+    board.scale = tuple(full_scale)
+
+    bpy.context.view_layer.update()
+
+    # --- Move so center is at origin ---
+    board.location = (0, 0, 0)
+
+    # --- Lift top surface to z = 0 ---
+    bbox = [board.matrix_world @ mathutils.Vector(c) for c in board.bound_box]
+    z_min = min(v.z for v in bbox)
+    z_max = max(v.z for v in bbox)
+    height = z_max - z_min
+    board.location.z += height / 2.0
+
+    # --- Physics setup ---
     board_bproc = bproc.python.types.MeshObjectUtility.MeshObject(board)
     board_bproc.set_cp("category_id", 0)
-    
+
     bpy.context.view_layer.objects.active = board
     bpy.ops.rigidbody.object_add()
     board.rigid_body.type = 'PASSIVE'
     board.rigid_body.collision_shape = 'BOX'
-    
+    board.rigid_body.collision_margin = 0.0
+
+    print(f"Board scaled to: {board.dimensions}")
     return board
 
-def create_walls():
-    """벽 4개 생성"""
+# def create_board():
+#     """보드 생성 및 설정"""
+#     # Import the board GLB
+#     bpy.ops.import_scene.gltf(filepath=BOARD_PATH)
+#     board = bpy.context.active_object
+#     board.name = "Board"
+#     board.scale.z = 1.0
+
+#     # --- Center the board's origin at its geometric center ---
+#     bpy.context.view_layer.objects.active = board
+#     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+
+#     # Move the board so its geometric center is at world origin
+#     board.location = (0, 0, 0)
+
+#     # --- Optional: align the *top surface* of the board to z = 0 ---
+#     bbox = [board.matrix_world @ mathutils.Vector(corner) for corner in board.bound_box]
+#     z_min = min(v.z for v in bbox)
+#     z_max = max(v.z for v in bbox)
+#     height = z_max - z_min
+#     board.location.z += height / 2.0
+
+#     # --- BlenderProc physics setup ---
+#     board_bproc = bproc.python.types.MeshObjectUtility.MeshObject(board)
+#     board_bproc.set_cp("category_id", 0)
+    
+#     bpy.context.view_layer.objects.active = board
+#     bpy.ops.rigidbody.object_add()
+#     board.rigid_body.type = 'PASSIVE'
+#     board.rigid_body.collision_shape = 'BOX'
+    
+#     return board
+
+def create_walls(board):
+    """보드 주위를 둘러싸는 4개의 벽 생성"""
+    bpy.context.view_layer.update()
+
+    # get actual board extents (in meters)
+    bbox = [board.matrix_world @ mathutils.Vector(corner) for corner in board.bound_box]
+    x_min = min(v.x for v in bbox); x_max = max(v.x for v in bbox)
+    y_min = min(v.y for v in bbox); y_max = max(v.y for v in bbox)
+
+    # half width/length
+    hx = (x_max - x_min) / 2.0
+    hy = (y_max - y_min) / 2.0
+
+    # wall parameters
+    margin = 0.02   # 2 cm gap from board edge
+    thick  = 0.01   # 1 cm thick wall
+    height = 0.15   # 15 cm tall
+
+    wall_specs = [
+        # (+X) right wall
+        (( hx + margin + thick/2, 0.0, height/2), (thick/2, hy + margin, height/2)),
+        # (-X) left wall
+        ((-hx - margin - thick/2, 0.0, height/2), (thick/2, hy + margin, height/2)),
+        # (+Y) top wall
+        ((0.0,  hy + margin + thick/2, height/2), (hx + margin, thick/2, height/2)),
+        # (-Y) bottom wall
+        ((0.0, -hy - margin - thick/2, height/2), (hx + margin, thick/2, height/2)),
+    ]
+
     walls = []
-    for i, (pos, scale) in enumerate(zip(WALL_POSITIONS, WALL_SCALES)):
+    for i, (pos, scale) in enumerate(wall_specs, 1):
         bpy.ops.mesh.primitive_cube_add(location=pos, scale=scale)
         wall = bpy.context.active_object
-        wall.name = f"Wall_{i+1}"
+        wall.name = f"Wall_{i}"
         wall.hide_render = True
         wall.hide_viewport = False
-        walls.append(wall)
-        
+
+        # rigid body
         bpy.context.view_layer.objects.active = wall
         bpy.ops.rigidbody.object_add()
         wall.rigid_body.type = 'PASSIVE'
         wall.rigid_body.collision_shape = 'BOX'
-    
+        wall.rigid_body.collision_margin = 0.0
+        wall.rigid_body.restitution = 0.0
+        wall.rigid_body.friction = 1.0
+
+        walls.append(wall)
+
+    print("Walls created around board:", [w.name for w in walls])
     return walls
+
+# def create_walls():
+#     """벽 4개 생성"""
+#     walls = []
+#     for i, (pos, scale) in enumerate(zip(WALL_POSITIONS, WALL_SCALES)):
+#         pos = (pos[0], pos[1], scale[2] / 2.0)
+#         bpy.ops.mesh.primitive_cube_add(location=pos, scale=scale)
+#         wall = bpy.context.active_object
+#         wall.name = f"Wall_{i+1}"
+#         wall.hide_render = True
+#         wall.hide_viewport = False
+#         walls.append(wall)
+        
+#         bpy.context.view_layer.objects.active = wall
+#         bpy.ops.rigidbody.object_add()
+#         wall.rigid_body.type = 'PASSIVE'
+#         wall.rigid_body.collision_shape = 'BOX'
+    
+#     return walls
 
 def import_and_setup_objects(board, walls, objects_info):
     """GLB 객체들 임포트 및 설정"""
@@ -130,9 +252,9 @@ def import_and_setup_objects(board, walls, objects_info):
         scale_factor = target_length / length
 
         obj.location = (
-            random.uniform(*MOVE_RANGE),
-            random.uniform(*MOVE_RANGE),
-            random.uniform(5, 10)
+            random.uniform(-0.24, 0.24),
+            random.uniform(-0.17, 0.17),
+            random.uniform(0.3, 0.6)
         )
         
         rx = random.uniform(0, 2*math.pi)

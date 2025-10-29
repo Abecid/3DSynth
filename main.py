@@ -73,7 +73,7 @@ def main():
     print("Setting up scene...")
     clear_scene()
     board = create_board()
-    walls = create_walls()
+    walls = create_walls(board)
     
     objects_info = {}
     imported_objects = import_and_setup_objects(board, walls, objects_info)
