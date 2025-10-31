@@ -40,49 +40,42 @@ def clear_scene():
 
 def create_board():
     """보드 생성 및 설정 (정확히 50x36x2.5 cm)"""
+    import mathutils, numpy as np, blenderproc as bproc, bpy
+
     TARGET_DIMS = np.array([0.50, 0.36, 0.025])  # meters
 
     # Import the board
     bpy.ops.import_scene.gltf(filepath=BOARD_PATH)
     board = bpy.context.active_object
-    print(">>> Board raw dimensions (m):", board.dimensions)
     board.name = "Board"
 
-    # --- Center origin at geometric center ---
+    # Center origin at geometry center
     bpy.context.view_layer.objects.active = board
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
 
-    # Measure current dimensions
+    # Measure current size
     bpy.context.view_layer.update()
     current_dims = np.array(board.dimensions)
-    # Sort both by size so orientation doesn’t matter
-    sorted_target = np.sort(TARGET_DIMS)
-    sorted_current = np.sort(current_dims)
 
-    # Compute scale factors so that smallest→smallest etc.
-    scale_factors = sorted_target / sorted_current
-    # Map them back to original axis order
-    order = np.argsort(current_dims)
-    full_scale = np.zeros(3)
-    full_scale[order] = scale_factors
-    board.scale = tuple(full_scale)
+    # Scale to target
+    scale_factors = TARGET_DIMS / current_dims
+    board.scale = tuple(scale_factors)
 
     bpy.context.view_layer.update()
 
-    # --- Move so center is at origin ---
+    # Move center to origin
     board.location = (0, 0, 0)
 
-    # --- Lift top surface to z = 0 ---
-    bbox = [board.matrix_world @ mathutils.Vector(c) for c in board.bound_box]
+    # Lift top surface to z = 0
+    bbox = [board.matrix_world @ mathutils.Vector(corner) for corner in board.bound_box]
     z_min = min(v.z for v in bbox)
     z_max = max(v.z for v in bbox)
     height = z_max - z_min
     board.location.z += height / 2.0
 
-    # --- Physics setup ---
+    # Physics setup
     board_bproc = bproc.python.types.MeshObjectUtility.MeshObject(board)
     board_bproc.set_cp("category_id", 0)
-
     bpy.context.view_layer.objects.active = board
     bpy.ops.rigidbody.object_add()
     board.rigid_body.type = 'PASSIVE'
