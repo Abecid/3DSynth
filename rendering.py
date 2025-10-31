@@ -44,8 +44,10 @@ def create_cameras(camera_path="configs/camera/welstory.json", use_vco_cals=True
             t_wc = t
             
             # Convert to Blender coordinates
-            R_wc_blender = cv2_to_blender @ R_wc
-            t_wc_blender = cv2_to_blender @ t_wc
+            # R_wc_blender = cv2_to_blender @ R_wc
+            # t_wc_blender = cv2_to_blender @ t_wc
+            
+            t_wc_blender = t_wc
 
             # Create Blender camera
             bpy.ops.object.camera_add()
