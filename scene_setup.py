@@ -42,7 +42,7 @@ def create_board():
     """보드 생성 및 설정 (정확히 50x36x2.5 cm)"""
     import mathutils, numpy as np, blenderproc as bproc, bpy
 
-    TARGET_DIMS = np.array([0.50, 0.36, 0.025])  # meters
+    TARGET_DIMS = np.array([0.36, 0.50, 0.04])  # meters
 
     # Import the board
     bpy.ops.import_scene.gltf(filepath=BOARD_PATH)
@@ -214,8 +214,8 @@ def import_and_setup_objects(board, walls, objects_info):
             json_file = os.path.join(os.path.dirname(glb_file), 'size.json')
             with open(json_file, 'r') as f:
                 size_data = json.load(f)
-                obj['min'] = 2 # size_data.get("min", 1.0)
-                obj['max'] = 3 # size_data.get("max", 1.0)
+                obj['min'] = 0.1 # size_data.get("min", 1.0)
+                obj['max'] = 0.3 # size_data.get("max", 1.0)
     imported_objects = [obj for obj in bpy.context.scene.objects 
                        if obj.type == 'MESH' and obj != board and obj not in walls]
     

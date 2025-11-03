@@ -16,6 +16,9 @@ NUM_CASES = 10
 # MM-DD-HH-MM
 DATETIME_NOW = datetime.datetime.now().strftime("%m-%d-%H-%M")
 
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))  # folder of generate_dataset.py
+MAIN_PY_PATH = os.path.join(PROJECT_DIR, "main.py")
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate Dataset using BlenderProc')
     parser.add_argument('--glb_dir', type=str, default='assets/Welstory',
@@ -50,9 +53,9 @@ def main(args):
         glb_paths = random.sample(glb_paths, SAMPLE_NUM)
         print(glb_paths)
         if args.debug: 
-            subprocess.run(['blenderproc', 'debug', 'main.py', '--glb', *map(str, glb_file_paths), '-o', f"output/{DATETIME_NOW}/{scene_num}"])
+            subprocess.run(['blenderproc', 'debug', MAIN_PY_PATH, '--glb', *map(str, glb_file_paths), '-o', f"output/{DATETIME_NOW}/{scene_num}"])
         else:
-            subprocess.run(['blenderproc', 'run', 'main.py', '--glb', *map(str, glb_paths), '-o', f"output/{DATETIME_NOW}/{scene_num}"])
+            subprocess.run(['blenderproc', 'run', MAIN_PY_PATH, '--glb', *map(str, glb_paths), '-o', f"output/{DATETIME_NOW}/{scene_num}"])
 
 if __name__ == "__main__":
     args = parse_args()

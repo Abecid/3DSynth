@@ -57,11 +57,6 @@ def create_cameras(camera_path="configs/camera/welstory.json", use_vco_cals=True
             # Apply translation
             cam_obj.location = mathutils.Vector(t_wc_blender.flatten() / 1000.0) # mm to m
 
-            # Apply rotation (convert to Blender quaternion)
-            # rot_mat = mathutils.Matrix(R_wc_blender.tolist())
-            # cam_obj.rotation_mode = 'QUATERNION'
-            # cam_obj.rotation_quaternion = rot_mat.to_quaternion()
-
             direction = target - cam_obj.location
             rot_quat = direction.to_track_quat('-Z', 'Y')
             cam_obj.rotation_euler = rot_quat.to_euler()
