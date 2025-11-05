@@ -85,39 +85,6 @@ def create_board():
     print(f"Board scaled to: {board.dimensions}")
     return board
 
-# def create_board():
-#     """보드 생성 및 설정"""
-#     # Import the board GLB
-#     bpy.ops.import_scene.gltf(filepath=BOARD_PATH)
-#     board = bpy.context.active_object
-#     board.name = "Board"
-#     board.scale.z = 1.0
-
-#     # --- Center the board's origin at its geometric center ---
-#     bpy.context.view_layer.objects.active = board
-#     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
-
-#     # Move the board so its geometric center is at world origin
-#     board.location = (0, 0, 0)
-
-#     # --- Optional: align the *top surface* of the board to z = 0 ---
-#     bbox = [board.matrix_world @ mathutils.Vector(corner) for corner in board.bound_box]
-#     z_min = min(v.z for v in bbox)
-#     z_max = max(v.z for v in bbox)
-#     height = z_max - z_min
-#     board.location.z += height / 2.0
-
-#     # --- BlenderProc physics setup ---
-#     board_bproc = bproc.python.types.MeshObjectUtility.MeshObject(board)
-#     board_bproc.set_cp("category_id", 0)
-    
-#     bpy.context.view_layer.objects.active = board
-#     bpy.ops.rigidbody.object_add()
-#     board.rigid_body.type = 'PASSIVE'
-#     board.rigid_body.collision_shape = 'BOX'
-    
-#     return board
-
 def create_walls(board):
     """보드 주위를 둘러싸는 4개의 벽 생성"""
     bpy.context.view_layer.update()
@@ -168,25 +135,6 @@ def create_walls(board):
 
     print("Walls created around board:", [w.name for w in walls])
     return walls
-
-# def create_walls():
-#     """벽 4개 생성"""
-#     walls = []
-#     for i, (pos, scale) in enumerate(zip(WALL_POSITIONS, WALL_SCALES)):
-#         pos = (pos[0], pos[1], scale[2] / 2.0)
-#         bpy.ops.mesh.primitive_cube_add(location=pos, scale=scale)
-#         wall = bpy.context.active_object
-#         wall.name = f"Wall_{i+1}"
-#         wall.hide_render = True
-#         wall.hide_viewport = False
-#         walls.append(wall)
-        
-#         bpy.context.view_layer.objects.active = wall
-#         bpy.ops.rigidbody.object_add()
-#         wall.rigid_body.type = 'PASSIVE'
-#         wall.rigid_body.collision_shape = 'BOX'
-    
-#     return walls
 
 def import_and_setup_objects(board, walls, objects_info):
     """GLB 객체들 임포트 및 설정"""

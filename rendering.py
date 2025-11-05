@@ -10,15 +10,55 @@ from utils import random_value
 import pdb
 import json
 
-cv2_to_blender = np.array([
-    [1,  0,  0],
-    [0,  0,  1],
-    [0, -1,  0]
-])
+# cv2_to_blender = np.array([
+#     [1,  0,  0],
+#     [0,  0,  1],
+#     [0, -1,  0]
+# ])
 
 img_w, img_h = 640, 480
 
-def create_cameras(camera_path="configs/camera/welstory.json", use_vco_cals=True):
+RENDER_RESOLUTION_WIDTH, RENDER_RESOLUTION_HEIGHT = img_w, img_h
+
+def create_cameras():
+    """카메라들 생성"""
+    from scipy.spatial.transform import Rotation
+    
+    cameras = []
+    
+    with open('configs/camera/info_real.json', 'r') as f:
+        camera_info = json.load(f)
+    
+    for key, value in camera_info.items():
+        # 카메라 생성
+        camera_data = bpy.data.cameras.new(name=key)
+        camera = bpy.data.objects.new(key, camera_data)
+        bpy.context.scene.collection.objects.link(camera)
+        
+        # Extrinsics 설정
+        extrinsics = np.array(value['extrinsics'])
+        camera.location = (extrinsics[0,3], extrinsics[1,3], extrinsics[2,3])
+        
+        R = Rotation.from_matrix(extrinsics[:3, :3])
+        camera.rotation_euler = R.as_euler('xyz')
+        camera.rotation_mode = 'XYZ'
+        
+        # Intrinsics 설정
+        fx = value['intrinsics'][0][0]
+        sensor_width = 4.8
+        focal_length = (fx * sensor_width) / RENDER_RESOLUTION_WIDTH
+        
+        camera_data.lens = focal_length
+        camera_data.sensor_width = sensor_width
+        camera_data.sensor_height = 3.6
+        camera_data.sensor_fit = 'HORIZONTAL'
+        bpy.context.scene.camera = camera
+        # bproc.camera.set_intrinsics_from_K_matrix(value[0]['intrinsics'], image_width=RENDER_RESOLUTION_WIDTH, image_height=RENDER_RESOLUTION_HEIGHT)
+        cameras.append(camera)
+    
+    return cameras
+
+def create_cameras_dep(camera_path="configs/camera/welstory.json", use_vco_cals=True):
     """카메라들 생성"""
     cameras = []
     target = mathutils.Vector((0, 0, 0))
@@ -26,6 +66,23 @@ def create_cameras(camera_path="configs/camera/welstory.json", use_vco_cals=True
     if use_vco_cals:
         with open(camera_path, "r") as f:
             calib = json.load(f)
+
+        camera_positions = [
+            ("LW_L", (0.2355, 0.4636, 0.3124)),
+            # ("LW_right", (0.1766, 0.4892, 0.3148)),
+            ("RW_L", (0.1761, -0.2991, 0.3210)),
+            # ("RW_right", (0.2377, -0.2679, 0.3119)),
+            ("TB_L", (0.2168, 0.0624, 0.5770)),
+            # ("TB_right", (0.2251, 0.1225, 0.5786)),
+            ("TC_L", (0.0082, 0.1374, 0.5959)),
+            # ("TC_right", (0.0269, 0.0550, 0.5958)),
+            ("TF_L", (-0.0793, 0.1408, 0.5768)),
+            # ("TF_right", (-0.0745, 0.0734, 0.5798)),
+            ("TL_L", (0.0970, 0.3051, 0.5611)),
+            # ("TL_right", (0.0335, 0.3056, 0.5579)),
+            ("TR_L", (0.0248, -0.1088, 0.5578)),
+            # ("TR_right", (0.0908, -0.1111, 0.5531))
+        ]
 
         for cam in calib["cameras"]:
             name = cam["name"]
@@ -112,7 +169,8 @@ def create_cameras(camera_path="configs/camera/welstory.json", use_vco_cals=True
         # 지정된 위치들로 카메라 생성
         for name, pos in camera_positions:
             # 위치 스케일링
-            scaled_pos = (pos[0] * scale_factor, pos[1] * scale_factor, pos[2] * scale_factor)
+            # scaled_pos = (pos[0] * scale_factor, pos[1] * scale_factor, pos[2] * scale_factor)
+            scaled_pos = pos
             
             bpy.ops.object.camera_add(location=scaled_pos)
             camera = bpy.context.active_object

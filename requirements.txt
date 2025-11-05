@@ -7,3 +7,4 @@ h5py==3.14.0
 plotly==6.1.2
 # setuptools==78.1.1
 blenderproc
+open3d==0.19.0
